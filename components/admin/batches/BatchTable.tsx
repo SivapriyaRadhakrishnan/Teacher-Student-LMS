@@ -10,9 +10,11 @@ type Batch = {
 
   batch_name: string;
 
-  year?: string | null;
-
   created_at?: string | null;
+
+  years?: {
+    year_name: string;
+  } | null;
 };
 
 type BatchTableProps = {
@@ -75,67 +77,65 @@ export default function BatchTable({
             </thead>
 
             <tbody>
-              {batches.map(
-                (batch) => (
-                  <tr
-                    key={batch.id}
-                    className="border-t transition hover:bg-muted/30"
-                  >
-                    {/* BATCH NAME */}
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
-                          <Layers3 className="h-5 w-5" />
-                        </div>
-
-                        <div>
-                          <p className="font-semibold">
-                            {batch.batch_name}
-                          </p>
-
-                          <p className="text-xs text-muted-foreground">
-                            ID:
-                            {" "}
-                            {batch.id.slice(
-                              0,
-                              8
-                            )}
-                          </p>
-                        </div>
+              {batches.map((batch) => (
+                <tr
+                  key={batch.id}
+                  className="border-t transition hover:bg-muted/30"
+                >
+                  {/* BATCH NAME */}
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-purple-100 text-purple-600">
+                        <Layers3 className="h-5 w-5" />
                       </div>
-                    </td>
 
-                    {/* YEAR */}
-                    <td className="px-6 py-5 text-sm text-muted-foreground">
-                      {batch.year ||
-                        "N/A"}
-                    </td>
+                      <div>
+                        <p className="font-semibold">
+                          {batch.batch_name}
+                        </p>
 
-                    {/* CREATED DATE */}
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CalendarDays className="h-4 w-4" />
-
-                        {batch.created_at
-                          ? new Date(
-                              batch.created_at
-                            ).toLocaleDateString()
-                          : "No date"}
+                        <p className="text-xs text-muted-foreground">
+                          ID:{" "}
+                          {batch.id.slice(
+                            0,
+                            8
+                          )}
+                        </p>
                       </div>
-                    </td>
+                    </div>
+                  </td>
 
-                    {/* ACTION */}
-                    <td className="px-6 py-5 text-right">
-                      <Link
-                        href={`/admin/batches/${batch.id}`}
-                        className="inline-flex items-center rounded-xl border px-4 py-2 text-sm font-medium transition hover:bg-muted"
-                      >
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                )
-              )}
+                  {/* YEAR */}
+                  <td className="px-6 py-5 text-sm text-muted-foreground">
+                    {batch.years
+                      ?.year_name ||
+                      "N/A"}
+                  </td>
+
+                  {/* CREATED DATE */}
+                  <td className="px-6 py-5">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CalendarDays className="h-4 w-4" />
+
+                      {batch.created_at
+                        ? new Date(
+                            batch.created_at
+                          ).toLocaleDateString()
+                        : "No date"}
+                    </div>
+                  </td>
+
+                  {/* ACTION */}
+                  <td className="px-6 py-5 text-right">
+                    <Link
+                      href={`/admin/batches/${batch.id}`}
+                      className="inline-flex items-center rounded-xl border px-4 py-2 text-sm font-medium transition hover:bg-muted"
+                    >
+                      View
+                    </Link>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

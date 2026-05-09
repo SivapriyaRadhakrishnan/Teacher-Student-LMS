@@ -103,46 +103,135 @@ export default function CreateBatchModal({
     setOpen(false);
   }
 
-  async function onSubmit(values: BatchFormValues) {
-    let yearId = values.yearId;
+  async function onSubmit(
+  values: BatchFormValues
+) {
+  let yearId = values.yearId;
 
-    if (values.yearId === NEW_YEAR_VALUE) {
-      const { data: createdYear, error: yearError } = await supabase
-        .from("years")
-        .insert({
-          year_name: values.newYearName || "",
-          teacher_id: teacherId,
-        })
-        .select("id")
-        .single();
+  try {
+    // CREATE YEAR
+    if (
+      values.yearId ===
+      NEW_YEAR_VALUE
+    ) {
+      const {
+        data: createdYear,
+        error: yearError,
+      }: any =
+        await supabase
+        .from("years" as any)
+          .insert([
+            {
+              year_name:
+                values.newYearName ||
+                "",
+            },
+          ])
+          .select("id")
+          .single();
 
-      if (yearError || !createdYear) {
-        toast.error("Could not create year", {
-          description: yearError?.message,
-        });
+      if (
+        yearError ||
+        !createdYear
+      ) {
+        toast.error(
+          "Could not create year",
+          {
+            description:
+              yearError?.message,
+          }
+        );
+
         return;
       }
 
       yearId = createdYear.id;
     }
 
-    const { error: batchError } = await supabase.from("batches").insert({
-      batch_name: values.batchName,
-      year_id: yearId,
-      teacher_id: teacherId,
-    });
+    // CREATE BATCH
+    const {
+      data: createdBatch,
+      error: batchError,
+    }: any =
+      await supabase
+       .from("batches" as any)
+        .insert([
+          {
+            batch_name:
+              values.batchName,
 
-    if (batchError) {
-      toast.error("Could not create batch", {
-        description: batchError.message,
-      });
+            year_id: yearId,
+          },
+        ])
+        .select("id")
+        .single();
+
+   if (
+  batchError ||
+  !createdBatch
+) {
+  let errorMessage =
+    "Could not create batch";
+
+  if (
+    batchError?.message?.includes(
+      "unique_batch_per_year"
+    )
+  ) {
+    errorMessage =
+      "This batch already exists in the selected year";
+  }
+
+  toast.error(errorMessage);
+
+  return;
+}
+
+    // INSERT INTO batch_teachers
+    const {
+      error: mappingError,
+    }: any =
+      await supabase
+        .from("batch_teachers" as any)
+        .insert([
+          {
+            batch_id:
+              createdBatch.id,
+
+            teacher_id:
+              teacherId,
+          },
+        ]);
+
+    if (mappingError) {
+      toast.error(
+        "Batch created but teacher mapping failed",
+        {
+          description:
+            mappingError?.message,
+        }
+      );
+
       return;
     }
 
-    toast.success("Batch created");
+    toast.success(
+      "Batch created"
+    );
+
     closeAndReset();
+
     router.refresh();
+  } catch (error: any) {
+    toast.error(
+      "Something went wrong",
+      {
+        description:
+          error?.message,
+      }
+    );
   }
+}
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

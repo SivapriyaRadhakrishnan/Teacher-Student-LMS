@@ -41,22 +41,66 @@ export default async function TeacherStudentsPage() {
     redirect("/login");
   }
 
-  const [{ data: batches, error: batchesError }, { data: students, error }] =
-    await Promise.all([
-      supabase
-        .from("batches")
-        .select("id,batch_name,years(year_name)")
-        .eq("teacher_id", user.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("students")
-        .select(
-          "id,created_at,profiles(id,name,email,phone),batches!inner(id,batch_name,teacher_id,years(year_name))"
-        )
-        .eq("batches.teacher_id", user.id)
-        .order("created_at", { ascending: false }),
-    ]);
+ const {
+  data: teacherBatches,
+} = await supabase
+  .from("batch_teachers")
+  .select("batch_id")
+  .eq(
+    "teacher_id",
+    user.id
+  );
 
+const batchIds =
+  teacherBatches?.map(
+    (item: any) =>
+      item.batch_id
+  ) || [];
+
+const [
+  {
+    data: batches,
+    error: batchesError,
+  },
+  {
+    data: students,
+    error,
+  },
+] = await Promise.all([
+  supabase
+    .from("batches")
+    .select(`
+      id,
+      batch_name,
+      years(year_name)
+    `)
+    .in("id", batchIds)
+    .order("created_at", {
+      ascending: false,
+    }),
+
+  supabase
+    .from("students")
+    .select(`
+      id,
+      created_at,
+      profiles(
+        id,
+        name,
+        email,
+        phone
+      ),
+      batches!inner(
+        id,
+        batch_name,
+        years(year_name)
+      )
+    `)
+    .in("batch_id", batchIds)
+    .order("created_at", {
+      ascending: false,
+    }),
+]);
   const batchOptions: StudentBatchOption[] = ((batches ?? []) as RawBatch[]).map(
     (batch) => ({
       id: batch.id,

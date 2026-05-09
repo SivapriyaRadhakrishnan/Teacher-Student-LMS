@@ -13,6 +13,12 @@ export async function deleteTeacher(
   teacherId: string
 ) {
   try {
+    // DELETE TEACHER BATCH RELATIONS
+    await supabaseAdmin
+      .from("batch_teachers")
+      .delete()
+      .eq("teacher_id", teacherId);
+
     // DELETE PROFILE
     await supabaseAdmin
       .from("profiles")

@@ -38,7 +38,7 @@ export default async function StudentAssignmentDetailsPage({
         id,
         batch_id
       `)
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single();
 
   if (!student) {

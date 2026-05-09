@@ -45,35 +45,40 @@ export async function createAssignment(
     }
 
     // CREATE ASSIGNMENT
-    const { error } =
-      await supabase
-        .from(
-          "assignments" as any
-        )
-        .insert({
-          title: data.title,
+   // CREATE ASSIGNMENT
+const {
+  data: assignment,
+  error,
+} = await supabase
+  .from(
+    "assignments" as any
+  )
+  .insert({
+    title: data.title,
 
-          description:
-            data.description,
+    description:
+      data.description,
 
-          instructions:
-            data.instructions,
+    instructions:
+      data.instructions,
 
-          deadline:
-            data.deadline,
+    deadline:
+      data.deadline,
 
-          max_marks: Number(
-            data.max_marks
-          ),
+    max_marks: Number(
+      data.max_marks
+    ),
 
-          batch_id:
-            data.batch_id,
+    batch_id:
+      data.batch_id,
 
-          teacher_id: user.id,
+    teacher_id: user.id,
 
-          allowed_types:
-            data.allowed_submission_types,
-        });
+    allowed_types:
+      data.allowed_submission_types,
+  })
+  .select()
+  .single();
 
     // INSERT ERROR
     if (error) {

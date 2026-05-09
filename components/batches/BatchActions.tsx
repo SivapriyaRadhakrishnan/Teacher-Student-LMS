@@ -88,13 +88,12 @@ export default function BatchActions({
 
   async function updateBatch(values: BatchFormValues) {
     const { error } = await supabase
-      .from("batches")
-      .update({
-        batch_name: values.batchName,
-        year_id: values.yearId,
-      })
-      .eq("id", batch.id)
-      .eq("teacher_id", teacherId);
+  .from("batches")
+  .update({
+    batch_name: values.batchName,
+    year_id: values.yearId,
+  })
+  .eq("id", batch.id);
 
     if (error) {
       toast.error("Could not update batch", { description: error.message });
@@ -117,11 +116,9 @@ export default function BatchActions({
     setIsDeleting(true);
 
     const { error } = await supabase
-      .from("batches")
-      .delete()
-      .eq("id", batch.id)
-      .eq("teacher_id", teacherId);
-
+  .from("batches")
+  .delete()
+  .eq("id", batch.id);
     setIsDeleting(false);
 
     if (error) {

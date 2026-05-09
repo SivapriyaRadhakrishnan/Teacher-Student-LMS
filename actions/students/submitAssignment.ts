@@ -128,33 +128,49 @@ export async function submitAssignment(
         )
         .single();
 
-    // GET ASSIGNMENT DETAILS
-    const { data: assignment } =
-      await supabase
-        .from("assignments")
-        .select(`
-          title,
-          deadline,
-          teacher_id
-        `)
-        .eq(
-          "id",
-          data.assignment_id
-        )
-        .single();
+    //// GET ASSIGNMENT DETAILS
+const { data: assignment } =
+  await supabase
+    .from("assignments")
+    .select(`
+      id,
+      title,
+      deadline,
+      batch_id
+    `)
+    .eq(
+      "id",
+      data.assignment_id
+    )
+    .single();
 
-    // GET TEACHER DETAILS
-    const { data: teacher } =
-      await supabase
-        .from("profiles")
-        .select(
-          "name, email"
-        )
-        .eq(
-          "id",
-          assignment!.teacher_id
-        )
-        .single();
+// GET TEACHER RELATION
+const {
+  data: batchTeacher,
+} = await supabase
+  .from("batch_teachers")
+  .select(`
+    teacher_id
+  `)
+  .eq(
+    "batch_id",
+    assignment!.batch_id
+  )
+  .limit(1)
+  .single();
+
+// GET TEACHER DETAILS
+const { data: teacher } =
+  await supabase
+    .from("profiles")
+    .select(
+      "name, email"
+    )
+    .eq(
+      "id",
+      (batchTeacher as any)?.teacher_id
+    )
+    .single();
 
     // EMAIL TO TEACHER
     if (teacher?.email) {

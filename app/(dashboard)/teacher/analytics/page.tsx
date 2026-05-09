@@ -40,15 +40,33 @@ export default async function TeacherAnalyticsPage() {
     redirect("/login");
   }
 
-  // STUDENTS
-  const { count: studentsCount } =
-    await supabase
-      .from("students")
-      .select("*", {
-        count: "exact",
-        head: true,
-      })
-      .eq("batches.teacher_id", user.id);
+  // GET TEACHER BATCH IDS
+const {
+  data: teacherBatches,
+} = await supabase
+  .from("batch_teachers")
+  .select("batch_id")
+  .eq(
+    "teacher_id",
+    user.id
+  );
+
+const batchIds =
+  teacherBatches?.map(
+    (item: any) =>
+      item.batch_id
+  ) || [];
+
+// STUDENTS COUNT
+const {
+  count: studentsCount,
+} = await supabase
+  .from("students")
+  .select("*", {
+    count: "exact",
+    head: true,
+  })
+  .in("batch_id", batchIds);
 
   // ASSIGNMENTS
   const { count: assignmentsCount } =
@@ -68,23 +86,26 @@ export default async function TeacherAnalyticsPage() {
 
   const totalSubmissions =
     submissions?.length || 0;
+
+
 // BATCH PERFORMANCE
-const { data: batchPerformance } =
-  await supabase
-    .from("batches")
-    .select(`
-      id,
-      batch_name,
+const {
+  data: batchPerformance,
+} = await supabase
+  .from("batches")
+  .select(`
+    id,
+    batch_name,
 
-      years(
-        year_name
-      ),
+    years(
+      year_name
+    ),
 
-      students(
-        id
-      )
-    `)
-    .eq("teacher_id", user.id);
+    students(
+      id
+    )
+  `)
+  .in("id", batchIds);
 
 // TOP PERFORMERS
 const { data: performerData } =

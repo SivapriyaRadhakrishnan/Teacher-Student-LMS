@@ -52,32 +52,84 @@ export default async function TeacherDashboardPage() {
     redirect("/login");
   }
 
-  const [
-    { data: students },
-    { data: assignments },
-    { data: submissions },
-    { data: batches },
-  ] = await Promise.all([
-    supabase
-      .from("students")
-      .select("id,batches!inner(teacher_id)")
-      .eq("batches.teacher_id", user.id),
-    supabase
-      .from("assignments")
-      .select("id,title,deadline,max_marks,created_at")
-      .eq("teacher_id", user.id)
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("submissions")
-      .select("id,status,submitted_at,marks,assignments!inner(teacher_id,deadline,max_marks)")
-      .eq("assignments.teacher_id", user.id),
-    supabase
-      .from("batches")
-      .select("id,batch_name,years(year_name)")
-      .eq("teacher_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(4),
-  ]);
+ // GET TEACHER BATCH IDS
+const {
+  data: teacherBatches,
+} = await supabase
+  .from("batch_teachers")
+  .select("batch_id")
+  .eq("teacher_id", user.id);
+
+const batchIds =
+  teacherBatches?.map(
+    (item: any) => item.batch_id
+  ) || [];
+
+const [
+  { data: students },
+  { data: assignments },
+  { data: submissions },
+  { data: batches },
+] = await Promise.all([
+  // STUDENTS
+  supabase
+    .from("students")
+    .select("id")
+    .in("batch_id", batchIds),
+
+  // ASSIGNMENTS
+  supabase
+    .from("assignments")
+    .select(`
+      id,
+      title,
+      deadline,
+      max_marks,
+      created_at,
+      batch_id
+    `)
+    .in("batch_id", batchIds)
+    .order("created_at", {
+      ascending: false,
+    }),
+
+  // SUBMISSIONS
+  supabase
+    .from("submissions")
+    .select(`
+      id,
+      status,
+      submitted_at,
+      marks,
+
+      assignments!inner(
+        deadline,
+        max_marks,
+        batch_id
+      )
+    `)
+    .in(
+      "assignments.batch_id",
+      batchIds
+    ),
+
+  // BATCHES
+  supabase
+    .from("batches")
+    .select(`
+      id,
+      batch_name,
+
+      years(
+        year_name
+      )
+    `)
+    .in("id", batchIds)
+    .order("created_at", {
+      ascending: false,
+    })
+    .limit(4),
+]);
 
   const now = new Date();
   const assignmentRows = assignments ?? [];

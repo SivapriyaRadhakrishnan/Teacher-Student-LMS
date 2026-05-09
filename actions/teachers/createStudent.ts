@@ -81,17 +81,17 @@ export async function createStudent(
     }
 
     // INSERT STUDENT
-    const {
-      error: studentError,
-    } =
-      await supabaseAdmin
-        .from("students")
-        .insert({
-          user_id: userId,
-          batch_id:
-            data.batch_id,
-          phone: data.phone,
-        });
+const {
+  error: studentError,
+} =
+  await supabaseAdmin
+    .from("students")
+    .insert({
+      id: userId,
+      batch_id:
+        data.batch_id,
+      phone: data.phone,
+    });
 
     // STUDENT ERROR
     if (studentError) {

@@ -1,12 +1,16 @@
 import { redirect } from "next/navigation";
+
 import { Input } from "@/components/ui/input";
+
 import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
   FileText,
 } from "lucide-react";
+
 import Link from "next/link";
+
 import { createClient } from "@/lib/supabase/server";
 
 type Submission = {
@@ -30,52 +34,178 @@ type Submission = {
 
   profiles: {
     name: string;
+
     email: string;
   } | null;
 };
 
-export default async function TeacherSubmissionsPage() {
-  const supabase = await createClient();
+type PageProps = {
+  searchParams: Promise<{
+    search?: string;
+
+    year?: string;
+
+    batch?: string;
+
+    status?: string;
+  }>;
+};
+
+export default async function TeacherSubmissionsPage({
+  searchParams,
+}: PageProps) {
+  const params =
+    await searchParams;
+
+  const search =
+    params.search?.trim() || "";
+
+  const selectedYear =
+    params.year || "";
+
+  const selectedBatch =
+    params.batch || "";
+
+  const selectedStatus =
+    params.status || "";
+
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data,error } =
-    await supabase
-      .from("submissions")
-      .select(`
-        id,
-        status,
-        marks,
+  // SUBMISSIONS
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("submissions")
+    .select(`
+      id,
+      status,
+      marks,
 
-        assignments(
-          title,
+      assignments(
+        title,
 
-          batches(
-            batch_name,
+        batches(
+          batch_name,
 
-            years(
-              year_name
-            )
+          years(
+            year_name
           )
-        ),
-
-        profiles!student_id(
-          name,
-          email
         )
-      `)
-      console.log("SUBMISSIONS ERROR:", error);
-console.log("SUBMISSIONS DATA:", data);
+      ),
 
-  const submissions =
+      profiles!student_id(
+        name,
+        email
+      )
+    `);
+
+  // YEARS
+  const { data: years } =
+    await supabase
+      .from("years")
+      .select("year_name");
+
+  // BATCHES
+  const { data: batches } =
+    await supabase
+      .from("batches")
+      .select("batch_name");
+
+  if (error) {
+    return (
+      <div className="rounded-2xl border bg-white p-6">
+        <p className="text-red-500">
+          {error.message}
+        </p>
+      </div>
+    );
+  }
+
+  let submissions =
     (data || []) as Submission[];
 
+  // SEARCH FILTER
+  if (search) {
+    submissions =
+      submissions.filter(
+        (submission) => {
+          const studentName =
+            submission.profiles?.name?.toLowerCase() ||
+            "";
+
+          const studentEmail =
+            submission.profiles?.email?.toLowerCase() ||
+            "";
+
+          const assignmentTitle =
+            submission.assignments?.title?.toLowerCase() ||
+            "";
+
+          const searchValue =
+            search.toLowerCase();
+
+          return (
+            studentName.includes(
+              searchValue
+            ) ||
+            studentEmail.includes(
+              searchValue
+            ) ||
+            assignmentTitle.includes(
+              searchValue
+            )
+          );
+        }
+      );
+  }
+
+  // YEAR FILTER
+  if (selectedYear) {
+    submissions =
+      submissions.filter(
+        (submission) =>
+          submission.assignments
+            ?.batches
+            ?.years
+            ?.year_name ===
+          selectedYear
+      );
+  }
+
+  // BATCH FILTER
+  if (selectedBatch) {
+    submissions =
+      submissions.filter(
+        (submission) =>
+          submission.assignments
+            ?.batches
+            ?.batch_name ===
+          selectedBatch
+      );
+  }
+
+  // STATUS FILTER
+  if (selectedStatus) {
+    submissions =
+      submissions.filter(
+        (submission) =>
+          submission.status ===
+          selectedStatus
+      );
+  }
+
+  // STATS
   const totalSubmissions =
     submissions.length;
 
@@ -110,14 +240,16 @@ console.log("SUBMISSIONS DATA:", data);
 
     {
       title: "Reviewed",
-      value: reviewedSubmissions,
+      value:
+        reviewedSubmissions,
       icon: CheckCircle2,
       color: "bg-green-500",
     },
 
     {
       title: "Pending",
-      value: pendingSubmissions,
+      value:
+        pendingSubmissions,
       icon: Clock3,
       color: "bg-orange-500",
     },
@@ -146,12 +278,13 @@ console.log("SUBMISSIONS DATA:", data);
       {/* STATS */}
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat) => {
-          const Icon = stat.icon;
+          const Icon =
+            stat.icon;
 
           return (
             <div
               key={stat.title}
-              className="rounded-2xl border bg-white p-6 shadow-sm"
+              className="rounded-3xl border bg-white p-6 shadow-sm"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -174,68 +307,107 @@ console.log("SUBMISSIONS DATA:", data);
           );
         })}
       </div>
-{/* FILTERS */}
-<div className="rounded-2xl border bg-white p-4 shadow-sm">
-  <div className="grid gap-4 md:grid-cols-4">
-    {/* SEARCH */}
-    <Input placeholder="Search student..." />
 
-    {/* YEAR */}
-    <select className="rounded-xl border bg-background px-3 py-2 text-sm">
-      <option>
-        All Years
-      </option>
+      {/* FILTERS */}
+      <form>
+        <div className="rounded-3xl border bg-white p-5 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-4">
+            {/* SEARCH */}
+            <Input
+              name="search"
+              defaultValue={search}
+              placeholder="Search student..."
+              className="h-11 rounded-xl"
+            />
+{/* YEAR */}
+<select
+  name="year"
+  defaultValue={
+    selectedYear
+  }
+  className="h-11 rounded-xl border bg-background px-3 text-sm"
+>
+  <option value="">
+    All Years
+  </option>
 
-      <option>
-        First Year
+  {years?.map(
+    (year, index) => (
+      <option
+        key={`${year.year_name}-${index}`}
+        value={
+          year.year_name
+        }
+      >
+        {year.year_name}
       </option>
+    )
+  )}
+</select>
 
-      <option>
-        Second Year
-      </option>
+{/* BATCH */}
+<select
+  name="batch"
+  defaultValue={
+    selectedBatch
+  }
+  className="h-11 rounded-xl border bg-background px-3 text-sm"
+>
+  <option value="">
+    All Batches
+  </option>
 
-      <option>
-        Third Year
+  {batches?.map(
+    (batch, index) => (
+      <option
+        key={`${batch.batch_name}-${index}`}
+        value={
+          batch.batch_name
+        }
+      >
+        {batch.batch_name}
       </option>
-    </select>
+    )
+  )}
+</select>
 
-    {/* BATCH */}
-    <select className="rounded-xl border bg-background px-3 py-2 text-sm">
-      <option>
-        All Batches
-      </option>
+            {/* STATUS */}
+            <select
+              name="status"
+              defaultValue={
+                selectedStatus
+              }
+              className="h-11 rounded-xl border bg-background px-3 text-sm"
+            >
+              <option value="">
+                All Status
+              </option>
 
-      <option>
-        UI/UX Batch A
-      </option>
+              <option value="pending">
+                Pending
+              </option>
 
-      <option>
-        Graphic Design Batch B
-      </option>
-    </select>
+              <option value="reviewed">
+                Reviewed
+              </option>
 
-    {/* STATUS */}
-    <select className="rounded-xl border bg-background px-3 py-2 text-sm">
-      <option>
-        All Status
-      </option>
+              <option value="late_submission">
+                Late Submission
+              </option>
+            </select>
+          </div>
 
-      <option>
-        Pending
-      </option>
+          <button
+            type="submit"
+            className="mt-5 rounded-xl bg-black px-5 py-2 text-sm font-medium text-white transition hover:bg-black/90"
+          >
+            Apply Filters
+          </button>
+        </div>
+      </form>
 
-      <option>
-        Reviewed
-      </option>
-
-      <option>
-        Late Submission
-      </option>
-    </select>
-  </div>
-</div>
       {/* TABLE */}
-      <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl border bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="border-b bg-muted/50">
@@ -279,12 +451,15 @@ console.log("SUBMISSIONS DATA:", data);
                 </tr>
               ) : (
                 submissions.map(
-                  (submission) => (
+                  (
+                    submission
+                  ) => (
                     <tr
-                      key={submission.id}
+                      key={
+                        submission.id
+                      }
                       className="border-b last:border-0"
                     >
-                      {/* STUDENT */}
                       <td className="px-6 py-4">
                         <div>
                           <p className="font-medium">
@@ -303,7 +478,6 @@ console.log("SUBMISSIONS DATA:", data);
                         </div>
                       </td>
 
-                      {/* ASSIGNMENT */}
                       <td className="px-6 py-4">
                         {submission
                           .assignments
@@ -311,8 +485,7 @@ console.log("SUBMISSIONS DATA:", data);
                           "-"}
                       </td>
 
-                      {/* YEAR */}
-                      <td className="px-6 py-4 text-muted-foreground">
+                      <td className="px-6 py-4">
                         {submission
                           .assignments
                           ?.batches
@@ -321,7 +494,6 @@ console.log("SUBMISSIONS DATA:", data);
                           "-"}
                       </td>
 
-                      {/* BATCH */}
                       <td className="px-6 py-4">
                         {submission
                           .assignments
@@ -330,7 +502,6 @@ console.log("SUBMISSIONS DATA:", data);
                           "-"}
                       </td>
 
-                      {/* STATUS */}
                       <td className="px-6 py-4">
                         <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium capitalize">
                           {submission.status?.replace(
@@ -340,21 +511,21 @@ console.log("SUBMISSIONS DATA:", data);
                         </span>
                       </td>
 
-                     {/* MARKS */}
-<td className="px-6 py-4">
-  <div className="flex items-center gap-3">
-    <span>
-      {submission.marks ?? "-"}
-    </span>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <span>
+                            {submission.marks ??
+                              "-"}
+                          </span>
 
-    <Link
-      href={`/teacher/submissions/${submission.id}`}
-      className="rounded-lg bg-black px-3 py-1 text-xs font-medium text-white hover:bg-black/90"
-    >
-      Review
-    </Link>
-  </div>
-</td>
+                          <Link
+                            href={`/teacher/submissions/${submission.id}`}
+                            className="rounded-lg bg-black px-3 py-1 text-xs font-medium text-white hover:bg-black/90"
+                          >
+                            Review
+                          </Link>
+                        </div>
+                      </td>
                     </tr>
                   )
                 )

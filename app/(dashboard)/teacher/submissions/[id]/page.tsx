@@ -31,26 +31,48 @@ export default async function ReviewSubmissionPage({
     redirect("/login");
   }
 
-  // FETCH SUBMISSION
-  const { data: submission } =
-    await supabase
-      .from("submissions")
-      .select(`
-        *,
-        
-        assignments(
-          title,
-          max_marks
-        ),
+ // GET TEACHER BATCH IDS
+const {
+  data: teacherBatches,
+} = await supabase
+  .from("batch_teachers")
+  .select("batch_id")
+  .eq(
+    "teacher_id",
+    user.id
+  );
 
-        profiles!student_id(
-          name,
-          email
-        )
-      `)
-      .eq("id", id)
-      .single();
+const batchIds =
+  teacherBatches?.map(
+    (item: any) =>
+      item.batch_id
+  ) || [];
 
+// FETCH SUBMISSION
+const { data: submission } =
+  await supabase
+    .from("submissions")
+    .select(`
+      *,
+      
+      assignments!inner(
+        title,
+        max_marks,
+        batch_id
+      ),
+
+      profiles!student_id(
+        name,
+        email
+      )
+    `)
+    .eq("id", id)
+    .in(
+      "assignments.batch_id",
+      batchIds
+    )
+    .single();
+    
   if (!submission) {
     redirect(
       "/teacher/submissions"

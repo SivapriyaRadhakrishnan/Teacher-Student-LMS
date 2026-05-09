@@ -25,14 +25,24 @@ export default async function BatchesPage({
   const supabase = await createClient();
 
   // BATCHES
-  const { data: batches } =
-    await supabase
-      .from("batches")
-      .select("*")
-      .ilike("name", `%${search}%`)
-      .order("created_at", {
-        ascending: false,
-      });
+const { data: batches } =
+  await supabase
+    .from("batches")
+    .select(`
+      id,
+      batch_name,
+      created_at,
+      years (
+        year_name
+      )
+    `)
+    .ilike(
+      "batch_name",
+      `%${search}%`
+    )
+    .order("created_at", {
+      ascending: false,
+    });
 
   // STUDENT COUNT
   const { count: studentsCount } =

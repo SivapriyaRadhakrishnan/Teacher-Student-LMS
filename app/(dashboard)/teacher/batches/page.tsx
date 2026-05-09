@@ -38,22 +38,55 @@ export default async function TeacherBatchesPage() {
     redirect("/login");
   }
 
-  const [{ data: years }, { data: batches, error: batchesError }] =
-    await Promise.all([
-      supabase
-        .from("years")
-        .select("id,year_name")
-        .eq("teacher_id", user.id)
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("batches")
-        .select("id,batch_name,created_at,year_id,years(id,year_name)")
-        .eq("teacher_id", user.id)
-        .order("created_at", { ascending: false }),
-    ]);
+  // GET TEACHER BATCH IDS
+const {
+  data: teacherBatches,
+} = await supabase
+  .from("batch_teachers")
+  .select("batch_id")
+  .eq("teacher_id", user.id);
+
+const batchIds =
+  teacherBatches?.map(
+    (item: any) =>
+      item.batch_id
+  ) || [];
+
+// GET YEARS
+const {
+  data: years,
+} = await supabase
+  .from("years")
+  .select(`
+    id,
+    year_name
+  `)
+  .order("created_at", {
+    ascending: false,
+  });
+
+// GET BATCHES
+const {
+  data: batches,
+  error: batchesError,
+} = await supabase
+  .from("batches")
+  .select(`
+    id,
+    batch_name,
+    created_at,
+    year_id,
+    years (
+      id,
+      year_name
+    )
+  `)
+  .in("id", batchIds)
+  .order("created_at", {
+    ascending: false,
+  });
 
   const batchRows = (batches ?? []) as RawBatch[];
-  const batchIds = batchRows.map((batch) => batch.id);
 
   const [{ data: studentRows }, { data: assignmentRows }] = batchIds.length
     ? await Promise.all([
